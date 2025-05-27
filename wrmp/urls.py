@@ -16,7 +16,14 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from tracker.views import AssignDevice, DeviceLocation, UserLocation, Map, Devices, UnassignDevice
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('devices/<str:id>/assign', AssignDevice.as_view()),
+    path('devices/<str:id>/location', DeviceLocation.as_view()),
+    path('users/<int:id>/location', UserLocation.as_view()),
+    path('map', Map.as_view()),
+    path('devices', Devices.as_view()),
+    path('devices/<str:id>/unassign', UnassignDevice.as_view())
 ]
