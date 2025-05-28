@@ -17,7 +17,16 @@ class SOSDeviceSerializer(serializers.ModelSerializer):
                                                  source='user',
                                                  allow_null=True,
                                                  required=False)
+    # Some endpoints use that name as an alias
+    ping_time = serializers.DateTimeField(source="timestamp", write_only=True)
 
     class Meta:
         model = SOSDevice
-        fields = ['device_id', 'user', 'user_id', 'latitude', 'longitude', 'timestamp']
+        fields = ['device_id', 'user', 'user_id', 'latitude', 'longitude',
+                  'timestamp', 'ping_time']
+
+
+class SOSDeviceLocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SOSDevice
+        fields = ['latitude', 'longitude', 'timestamp']

@@ -1,83 +1,62 @@
 from tracker.models import User, SOSDevice
-from rest_framework.views import APIView
-from tracker.serializers import SOSDeviceSerializer
-from django.http import Http404
+from tracker.serializers import (SOSDeviceSerializer, UserSerializer,
+                                 SOSDeviceLocationSerializer)
 from rest_framework.response import Response
 from rest_framework import status
-from datetime import datetime
 from rest_framework import generics
+from rest_framework.exceptions import NotFound, ValidationError
 
 
-class AssignDevice(APIView):
-    def get_device(self, id):
+class DeviceView(generics.GenericAPIView):
+    queryset = SOSDevice.objects.all()
+    serializer_class = SOSDeviceSerializer
+
+    lookup_field = 'device_id'
+    lookup_url_kwarg = 'id'
+
+    def _partial_update(self, data, device=None,
+                        status_code=status.HTTP_200_OK):
+        if device is None:
+            device = self.get_object()
+        serializer = self.get_serializer(device, data=data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status_code)
+
+
+class UserView(generics.GenericAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    lookup_field = 'id'
+    lookup_url_kwarg = 'id'
+
+
+class AssignDevice(DeviceView):
+    def post(self, request, id):
+        device = self.get_object()
+        # Unassigning user's current device if they have one assigned
         try:
-            return SOSDevice.objects.get(device_id=id)
-        except SOSDevice.DoesNotExist:
-            raise Http404
-
-    def get_user(self, id):
-        try:
-            return User.objects.get(pk=id)
-        except User.DoesNotExist:
-            raise Http404
-
-    def post(self, request, id, format=None):
-        device = self.get_device(id)
-        user_id = self.request.data["user_id"]
-        serializer = SOSDeviceSerializer(device, data={'user_id': user_id},
-                                         partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-        return Response(data="Wrong data", status=status.HTTP_400_BAD_REQUEST)
+            user = User.objects.get(pk=request.data["user_id"])
+            if user.device:
+                self._partial_update(device=user.device,
+                                     data={"user_id": None})
+        except User.DoesNotExist and User.device.RelatedObjectDoesNotExist:
+            pass
+        return self._partial_update(data={'user_id': request.data["user_id"]},
+                                    device=device)
 
 
-class DeviceLocation(APIView):
-    # TODO: fix
-    def get_device(self, id):
-        try:
-            return SOSDevice.objects.get(device_id=id)
-        except SOSDevice.DoesNotExist:
-            raise Http404
+class Devices(generics.ListAPIView, DeviceView):
+    """"""
 
-    def post(self, request, id, format=None):
-        device = self.get_device(id)
+
+class DeviceLocation(DeviceView):
+    def post(self, request, id):
+        device = self.get_object()
         if not device.user:
-            return Response(data="Device not assigned",
-                            status=status.HTTP_400_BAD_REQUEST)
-        latitude = request.data["latitude"]
-        longitude = request.data["longitude"]
-        try:
-            tz = datetime.fromisoformat(request.data["ping_time"])
-        except ValueError:
-            return Response(data="Timestamp not in ISO format",
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        serializer = SOSDeviceSerializer(device,
-                                         data={"latitude": latitude,
-                                               "longitude": longitude,
-                                               "timestamp": tz},
-                                         partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-        return Response(data="Wrong data", status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserLocation(APIView):
-    def get_user(self, id):
-        try:
-            return User.objects.get(pk=id)
-        except User.DoesNotExist:
-            raise Http404
-
-    def get(self, request, id, format=None):
-        user = self.get_user(id)
-        serializer = SOSDeviceSerializer(user.device)
-        return Response({"latitude": serializer.data["latitude"],
-                         "longitude": serializer.data["longitude"],
-                         "timestamp": serializer.data["timestamp"]},
-                        status=status.HTTP_200_OK)
+            raise ValidationError("Device not assigned")
+        return self._partial_update(device=device, data=request.data)
 
 
 class Map(generics.ListAPIView):
@@ -85,27 +64,21 @@ class Map(generics.ListAPIView):
     serializer_class = SOSDeviceSerializer
 
 
-class Devices(generics.ListAPIView):
-    queryset = SOSDevice.objects.all()
-    serializer_class = SOSDeviceSerializer
-
-
-class UnassignDevice(APIView):
-    # TODO: fix
-    def get_device(self, id):
-        try:
-            return SOSDevice.objects.get(device_id=id)
-        except SOSDevice.DoesNotExist:
-            raise Http404
-
-    def post(self, request, id, format=None):
-        device = self.get_device(id)
+class UnassignDevice(DeviceView):
+    def post(self, request, id):
+        device = self.get_object()
         if not device.user:
-            return Response(data="Device already unassigned",
-                            status=status.HTTP_200_OK)
-        serializer = SOSDeviceSerializer(device, data={"user_id": None},
-                                         partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data=serializer.data, status=status.HTTP_200_OK)
-        return Response(data="Wrong data", status=status.HTTP_400_BAD_REQUEST)
+            # Early return skips an unncessary DB write
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        return self._partial_update(device=device, data={"user_id": None})
+
+
+class UserLocation(UserView):
+    def get(self, request, id):
+        user = self.get_object()
+        try:
+            device = user.device
+        except User.device.RelatedObjectDoesNotExist:
+            raise NotFound("User has not device.")
+        serializer = SOSDeviceLocationSerializer(device)
+        return Response(serializer.data, status=status.HTTP_200_OK)
