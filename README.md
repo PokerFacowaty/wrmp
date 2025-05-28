@@ -2,13 +2,14 @@
 
 This is a recruitment assignment for Vatix.
 
-# setup
+# Setup
 `wrmp` is easiest to install using [uv](https://docs.astral.sh/uv/#installation).
 
 1. Clone the repo.
-2. Use `uv install` to install dependencies.
+2. Use `uv sync` to install dependencies.
+3. Run `uv run manage.py migrate`
     1. If you end up setting `DEBUG` to `False` in `settings.py`, don't forget to set `ALLOWED_HOSTS` as well.
-3. Use `uv run manage.py runserver` to run the app.
+4. Use `uv run manage.py runserver` to run the app.
 
 # If I had more time, I would fix/add:
 - That one try/catch lookup in the AssignDevice view.
