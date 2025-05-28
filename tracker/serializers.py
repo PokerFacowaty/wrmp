@@ -5,7 +5,7 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'name']
+        fields = ["id", "name"]
 
 
 class SOSDeviceSerializer(serializers.ModelSerializer):
@@ -14,7 +14,7 @@ class SOSDeviceSerializer(serializers.ModelSerializer):
     # For writes by pk
     user_id = serializers.PrimaryKeyRelatedField(queryset=User.objects.all(),
                                                  read_only=False,
-                                                 source='user',
+                                                 source="user",
                                                  allow_null=True,
                                                  required=False)
     # Some endpoints use that name as an alias
@@ -22,11 +22,11 @@ class SOSDeviceSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = SOSDevice
-        fields = ['device_id', 'user', 'user_id', 'latitude', 'longitude',
-                  'timestamp', 'ping_time']
+        fields = ["device_id", "user", "user_id", "latitude", "longitude",
+                  "timestamp", "ping_time"]
 
 
 class SOSDeviceLocationSerializer(serializers.ModelSerializer):
     class Meta:
         model = SOSDevice
-        fields = ['latitude', 'longitude', 'timestamp']
+        fields = ["latitude", "longitude", "timestamp"]
