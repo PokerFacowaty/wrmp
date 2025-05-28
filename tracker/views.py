@@ -60,8 +60,18 @@ class DeviceLocation(DeviceView):
 
 
 class Map(generics.ListAPIView):
-    queryset = SOSDevice.objects.filter(user__isnull=False)
     serializer_class = SOSDeviceSerializer
+
+    def get_queryset(self):
+        queryset = SOSDevice.objects.filter(user__isnull=False)
+        # Assuming 'device_id' was meant by 'device type' in the assignment
+        device_type = self.request.query_params.get('device_type')
+        if device_type is not None:
+            queryset = queryset.filter(device_id=device_type)
+        user_id = self.request.query_params.get('user_id')
+        if user_id is not None:
+            queryset = queryset.filter(user__id=user_id)
+        return queryset
 
 
 class UnassignDevice(DeviceView):
