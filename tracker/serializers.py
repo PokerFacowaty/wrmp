@@ -3,12 +3,22 @@ from rest_framework import serializers
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """
+    General User serializer including all fields.
+    """
+
     class Meta:
         model = User
         fields = ["id", "name"]
 
 
 class SOSDeviceSerializer(serializers.ModelSerializer):
+    """
+    General SOSDevice serializer including all fields. Allows for changing
+    the assigned user using the user_id field. Aliases "ping_time" for
+    "timestamp".
+    """
+
     # For reads
     user = UserSerializer(read_only=True)
     # For writes by pk
@@ -27,6 +37,10 @@ class SOSDeviceSerializer(serializers.ModelSerializer):
 
 
 class SOSDeviceLocationSerializer(serializers.ModelSerializer):
+    """
+    SOSDevice serializer specifically for accessing a device's location.
+    Includes latitude, longitude and timestamp.
+    """
     class Meta:
         model = SOSDevice
         fields = ["latitude", "longitude", "timestamp"]

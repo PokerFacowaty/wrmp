@@ -7,6 +7,10 @@ from tracker.serializers import (SOSDeviceSerializer,
 
 
 class DeviceView(generics.GenericAPIView):
+    """
+    A view based on SOSDeviceSerializer. Handles partial updates to SOSDevice
+    objects.
+    """
     queryset = SOSDevice.objects.all()
     serializer_class = SOSDeviceSerializer
 
@@ -24,6 +28,9 @@ class DeviceView(generics.GenericAPIView):
 
 
 class UserView(generics.GenericAPIView):
+    """
+    A view based on UserSerializer.
+    """
     queryset = User.objects.all()
     serializer_class = UserSerializer
 
@@ -32,6 +39,11 @@ class UserView(generics.GenericAPIView):
 
 
 class AssignDevice(DeviceView):
+    """
+    Allows for assigning devices to users with a POST request. Unassigns
+    a device if the user has one already assigned.
+    """
+
     def post(self, request, id):
         device = self.get_object()
         # Unassigning user"s current device if they have one assigned
@@ -47,10 +59,16 @@ class AssignDevice(DeviceView):
 
 
 class Devices(generics.ListAPIView, DeviceView):
-    ...
+    """
+    Lists all existing devices.
+    """
 
 
 class DeviceLocation(DeviceView):
+    """
+    Allows for updating a device's location.
+    """
+
     def post(self, request, id):
         device = self.get_object()
         if not device.user:
@@ -59,6 +77,10 @@ class DeviceLocation(DeviceView):
 
 
 class Map(generics.ListAPIView):
+    """
+    Shows all assigned devices, optionally filtering them by device id and/or
+    user id.
+    """
     serializer_class = SOSDeviceSerializer
 
     def get_queryset(self):
@@ -74,6 +96,11 @@ class Map(generics.ListAPIView):
 
 
 class UnassignDevice(DeviceView):
+    """
+    Unassigns a device from a user. Does nothing if the device is already not
+    assigned.
+    """
+
     def post(self, request, id):
         device = self.get_object()
         if not device.user:
@@ -83,6 +110,10 @@ class UnassignDevice(DeviceView):
 
 
 class UserLocation(UserView):
+    """
+    Show's a user location or returns a 404 in case no device is assigned.
+    """
+
     def get(self, request, id):
         user = self.get_object()
         try:
