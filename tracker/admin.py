@@ -1,3 +1,5 @@
 from django.contrib import admin
+from tracker.models import SOSDevice, User
 
-# Register your models here.
+admin.site.register(SOSDevice)
+admin.site.register(User)
